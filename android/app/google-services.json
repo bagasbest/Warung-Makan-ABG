@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "379726837156",
+    "project_id": "warung-makan-abg",
+    "storage_bucket": "warung-makan-abg.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379726837156:android:fd8694d654677b001d7d31",
+        "android_client_info": {
+          "package_name": "com.warungmakanabg.warung_makan_abg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "379726837156-0lg5kjmlel040qcrhd7v5f67660pdfto.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7XTBo7dXxB9bx7Y9QhsMW8kUyd_ibyAw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "379726837156-0lg5kjmlel040qcrhd7v5f67660pdfto.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
