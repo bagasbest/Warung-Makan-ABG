@@ -1,74 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:warung_makan_abg/databases/database_service.dart';
-import 'package:warung_makan_abg/screens/product/product_edit.dart';
 
 import '../register_screen.dart';
 
-class ProductDetail extends StatefulWidget {
+class CartDetail extends StatefulWidget {
   final String productId;
+  final String cartId;
   final String name;
-  final int quantity;
+  int qty;
   final String description;
-  final int price;
+  int price;
   final String image;
+  final int priceBase;
 
-  ProductDetail({
+  CartDetail({
     required this.productId,
+    required this.cartId,
     required this.name,
-    required this.quantity,
+    required this.qty,
     required this.description,
     required this.price,
     required this.image,
+    required this.priceBase,
   });
 
   @override
-  _ProductDetailState createState() => _ProductDetailState();
+  _CartDetailState createState() => _CartDetailState();
 }
 
-class _ProductDetailState extends State<ProductDetail> {
-  String role = '';
-
+class _CartDetailState extends State<CartDetail> {
+  final moneyCurrency = new NumberFormat("#,##0", "en_US");
   var _qty = TextEditingController();
-
-  _initializeRole() async {
-    String uid = FirebaseAuth.instance.currentUser!.uid;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get()
-        .then((value) {
-      setState(() {
-        role = value.data()!['role'];
-      });
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    _initializeRole();
+    _qty.text = widget.qty.toString();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.lightBlueAccent,
-        onPressed: () {
-          /// konfirmasi menambahkan barang kedalam keranjang
-          _showConfirmAddProduct();
-        },
-        child: Icon(
-          Icons.shopping_cart_sharp,
-          color: Colors.white,
-        ),
-      ),
       appBar: AppBar(
         title: Text(
-          'Detail Produk',
+          'Detail Keranjang',
         ),
         backgroundColor: Colors.lightBlueAccent,
         leading: IconButton(
@@ -76,19 +53,18 @@ class _ProductDetailState extends State<ProductDetail> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          (role == 'owner')
-              ? PopupMenuButton(
-                  onSelected: _handleClick,
-                  itemBuilder: (BuildContext context) {
-                    return {'Edit Produk', 'Hapus Produk'}.map((String choice) {
-                      return PopupMenuItem<String>(
-                        value: choice,
-                        child: Text(choice),
-                      );
-                    }).toList();
-                  },
-                )
-              : Container()
+          PopupMenuButton(
+            onSelected: _handleClick,
+            itemBuilder: (BuildContext context) {
+              return {'Kurangi kuantitas produk', 'Hapus produk dari keranjang'}
+                  .map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -170,7 +146,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Harga: Rp.' + widget.price.toString(),
+                        'Harga: Rp.' + moneyCurrency.format(widget.price),
                         style: TextStyle(
                           fontSize: 16,
                         ),
@@ -179,7 +155,7 @@ class _ProductDetailState extends State<ProductDetail> {
                         height: 10,
                       ),
                       Text(
-                        'Tersedia: ' + widget.quantity.toString() + ' pcs',
+                        'Pembelian: ' + widget.qty.toString() + ' pcs',
                         style: TextStyle(
                           fontSize: 16,
                         ),
@@ -197,22 +173,66 @@ class _ProductDetailState extends State<ProductDetail> {
 
   _handleClick(String value) {
     switch (value) {
-      case 'Edit Produk':
-        Route route = MaterialPageRoute(
-            builder: (context) => ProductEdit(
-                  productId: widget.productId,
-                  name: widget.name,
-                  description: widget.description,
-                  image: widget.image,
-                  quantity: widget.quantity,
-                  price: widget.price,
-                ));
-        Navigator.push(context, route);
+      case 'Kurangi kuantitas produk':
+        _showConfirmAddProduct();
         break;
-      case 'Hapus Produk':
-        _deleteProduct(context, widget.productId);
+      case 'Hapus produk dari keranjang':
+        _deleteProduct(context);
         break;
     }
+  }
+
+  _deleteProduct(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Text('Konfirmasi Menghapus'),
+              Icon(
+                Icons.delete,
+                color: Colors.lightBlueAccent,
+              ),
+            ],
+          ),
+          content: Text(
+              'Apakah anda yakin ingin menghapus produk "${widget.name}" dari keranjang ?'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.clear),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.check),
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('cart')
+                    .doc(widget.cartId)
+                    .delete()
+                    .then(
+                      (value) => {
+                        toast(
+                          'Berhasil Menghapus Produk ${widget.name} dari keranjang',
+                        ),
+                      },
+                    )
+                    .catchError(
+                  (error) {
+                    toast(
+                        'Gagal Menghapus Produk ${widget.name} dari keranjang');
+                  },
+                );
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   _showConfirmAddProduct() {
@@ -232,7 +252,7 @@ class _ProductDetailState extends State<ProductDetail> {
             children: [
               Center(
                 child: Text(
-                  'Kuantitas Produk',
+                  'Kurangi Kuantitas Produk',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -258,7 +278,7 @@ class _ProductDetailState extends State<ProductDetail> {
                 height: 16,
               ),
               Text(
-                'Tersedia ${widget.quantity} pcs, anda ingin order berapa banyak ?',
+                'Tersedia ${widget.qty} pcs, anda ingin mengurangi berapa banyak produk ?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -269,9 +289,7 @@ class _ProductDetailState extends State<ProductDetail> {
                 height: 16,
               ),
               Container(
-                margin: EdgeInsets.only(
-                  top: 10,
-                ),
+                margin: EdgeInsets.only(top: 10),
                 padding: EdgeInsets.symmetric(horizontal: 30, vertical: 1),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
@@ -282,12 +300,16 @@ class _ProductDetailState extends State<ProductDetail> {
                   controller: _qty,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
-                    hintText: 'Qty',
+                    hintText: 'Kurangi kuantitas',
                     border: InputBorder.none,
                   ),
                   validator: (value) {
                     if (value!.isEmpty) {
                       return 'Kuantitas tidak boleh kosong';
+                    } else if (int.parse(_qty.text) >= widget.qty) {
+                      return 'Maksimal ${widget.qty - 1} produk';
+                    } else if (_qty.text == '0') {
+                      return 'Minimal 1 produk';
                     } else {
                       return null;
                     }
@@ -315,82 +337,28 @@ class _ProductDetailState extends State<ProductDetail> {
                 color: Colors.white,
               ),
               onPressed: () async {
-                final DateTime now = DateTime.now();
-                final DateFormat formatter =
-                    DateFormat('dd MMMM yyyy, hh:mm:ss');
-                final String formatted = formatter.format(now);
+                if(int.parse(_qty.text) < widget.qty) {
 
-                int price = int.parse(_qty.text) * widget.price;
-                var timeInMillis = DateTime.now().millisecondsSinceEpoch;
+                  int price =
+                      (widget.qty - int.parse(_qty.text)) * widget.priceBase;
 
-                await DatabaseService.addToCart(
-                  widget.productId,
-                  widget.name,
-                  int.parse(_qty.text),
-                  price,
-                  widget.image,
-                  timeInMillis.toString(),
-                  widget.description,
-                  widget.price,
-                );
+                  await DatabaseService.updateCart(
+                    widget.cartId,
+                    widget.qty - int.parse(_qty.text),
+                    price,
+                  );
 
-                Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+
+                  setState(() {
+                    widget.qty = widget.qty - int.parse(_qty.text);
+                    widget.price = price;
+                  });
+                }
               },
             ),
           ],
           elevation: 10,
-        );
-      },
-    );
-  }
-
-  _deleteProduct(BuildContext context, String uid) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Text('Konfirmasi Menghapus'),
-              Icon(
-                Icons.delete,
-                color: Colors.lightBlueAccent,
-              ),
-            ],
-          ),
-          content: Text(
-              'Apakah anda yakin ingin menghapus produk "${widget.name}" ?'),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.clear),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.check),
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('product')
-                    .doc(uid)
-                    .delete()
-                    .then(
-                      (value) => {
-                        toast(
-                          'Berhasil Menghapus Produk ${widget.name}',
-                        ),
-                      },
-                    )
-                    .catchError(
-                  (error) {
-                    toast('Gagal Menghapus Produk ${widget.name}');
-                  },
-                );
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );

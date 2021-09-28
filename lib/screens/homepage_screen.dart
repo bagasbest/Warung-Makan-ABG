@@ -29,33 +29,33 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: Icon(
               Icons.all_inbox,
-              color: Colors.blue,
+              color: Colors.lightBlueAccent,
             ),
             label: 'Produk',
           ),
           BottomNavigationBarItem(
             icon:  Icon(
               Icons.shopping_cart,
-              color: Colors.blue,
+              color: Colors.lightBlueAccent,
             ),
             label: 'Keranjang',
           ),
           BottomNavigationBarItem(
             icon:  Icon(
               Icons.payment,
-              color: Colors.blue,
+              color: Colors.lightBlueAccent,
             ),
             label: 'Transaksi',
           ),
           BottomNavigationBarItem(
             icon:  Icon(
               Icons.account_balance_wallet_rounded,
-              color: Colors.blue,
+              color: Colors.lightBlueAccent,
             ),
             label: 'Pendapatan',
           ),
         ],
-        selectedItemColor: Colors.blue,
+        selectedItemColor: Colors.lightBlueAccent,
 
         onTap: (index) {
           setState(() {

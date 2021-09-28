@@ -29,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
               Container(
                 height: 100,
                 decoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: Colors.lightBlueAccent,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(25),
                       bottomRight: Radius.circular(25),
@@ -171,7 +171,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: 250,
                       height: 50,
                       child: RaisedButton(
-                          color: Colors.blue,
+                          color: Colors.lightBlueAccent,
                           child: Text(
                             'Registrasi',
                             style: TextStyle(

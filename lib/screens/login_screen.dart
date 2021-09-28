@@ -41,7 +41,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
               Container(
                 height: 100,
                 decoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: Colors.lightBlueAccent,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(25),
                       bottomRight: Radius.circular(25),
@@ -156,7 +156,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
                       width: 200,
                       height: 50,
                       child: RaisedButton(
-                          color: Colors.blue,
+                          color: Colors.lightBlueAccent,
                           child: Text(
                             'Login',
                             style: TextStyle(
@@ -238,7 +238,7 @@ class _LoginPageScreenState extends State<LoginPageScreen> {
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         timeInSecForIosWeb: 1,
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.lightBlueAccent,
         textColor: Colors.white,
         fontSize: 16.0);
   }

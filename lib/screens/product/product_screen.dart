@@ -43,7 +43,7 @@ class _ProductScreenState extends State<ProductScreen> {
                     builder: (context) => ProductAdd());
                 Navigator.push(context, route);
               },
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.lightBlueAccent,
               child: Icon(
                 Icons.add,
                 color: Colors.white,
@@ -54,21 +54,21 @@ class _ProductScreenState extends State<ProductScreen> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              top: 30,
+              top: 40,
               left: 16,
             ),
             child: Text(
               'Daftar Produk Tersedia',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: Colors.blue,
+                color: Colors.lightBlueAccent,
                 fontSize: 18,
               ),
             ),
           ),
           Padding(
             padding: EdgeInsets.only(
-              top: 60,
+              top: 77,
             ),
             child: Divider(
               color: Colors.grey,
@@ -79,7 +79,7 @@ class _ProductScreenState extends State<ProductScreen> {
           /// tampilkan semua produk tersedia
 
           Container(
-            margin: EdgeInsets.only(left: 16, right: 16, top: 76),
+            margin: EdgeInsets.only(left: 16, right: 16, top: 90),
             child: StreamBuilder(
               stream: (_role == 'cashier')
                   ? FirebaseFirestore.instance
