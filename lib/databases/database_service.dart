@@ -138,6 +138,7 @@ class DatabaseService {
         'priceTotal': priceTotal,
       });
 
+      /// create history transaction
       for (int i = 0; i < cartList.length; i++) {
         try {
           FirebaseFirestore.instance
@@ -161,6 +162,16 @@ class DatabaseService {
           return false;
         }
       }
+
+      /// create balance
+      await FirebaseFirestore.instance
+          .collection('balance')
+          .doc(transactionId)
+          .set({
+        'transactionId': transactionId,
+        'date': date,
+        'priceTotal': priceTotal,
+      });
 
       return true;
     } catch (error) {

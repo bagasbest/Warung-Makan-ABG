@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:warung_makan_abg/screens/transaction/transaction_detail_list.dart';
@@ -23,17 +24,37 @@ class TransactionDetail extends StatefulWidget {
 class _TransactionDetailState extends State<TransactionDetail> {
   final moneyCurrency = new NumberFormat("#,##0", "en_US");
 
+  String _role = '';
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _initializeRole();
+  }
+
+  _initializeRole() {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+    FirebaseFirestore.instance.collection('users').doc(uid).get().then((value) {
+      _role = value.data()!['role'].toString();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        child: Icon(
-          Icons.delete,
-          color: Colors.red,
-        ),
-        onPressed: () {},
-      ),
+      floatingActionButton: (_role == 'owner')
+          ? FloatingActionButton(
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              onPressed: () {
+                _showConfirmationDeleteTransaction();
+              },
+            )
+          : Container(),
       appBar: AppBar(
         backgroundColor: Colors.lightBlueAccent,
         title: Text(
@@ -186,9 +207,11 @@ class _TransactionDetailState extends State<TransactionDetail> {
                       builder: (BuildContext context,
                           AsyncSnapshot<QuerySnapshot> snapshot) {
                         return (snapshot.hasData)
-                            ? ListOfHistoryTransaction(
-                                document: snapshot.data!.docs,
-                              )
+                            ? (snapshot.data!.size > 0)
+                                ? ListOfHistoryTransaction(
+                                    document: snapshot.data!.docs,
+                                  )
+                                : Container()
                             : Container();
                       },
                     ),
@@ -199,6 +222,92 @@ class _TransactionDetailState extends State<TransactionDetail> {
           ],
         ),
       ),
+    );
+  }
+
+  _showConfirmationDeleteTransaction() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.white),
+            borderRadius: BorderRadius.all(
+              Radius.circular(16),
+            ),
+          ),
+          backgroundColor: Colors.lightBlueAccent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Text(
+                  'Konfirmasi Hapus Transaksi',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 5,
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  left: MediaQuery.of(context).size.width * 0.1,
+                  right: MediaQuery.of(context).size.width * 0.1,
+                ),
+                child: Divider(
+                  color: Colors.white,
+                  height: 3,
+                  thickness: 3,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Text(
+                'Apakah anda yakin ingin menghapus transaksi ini ?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.clear,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.check,
+                color: Colors.white,
+              ),
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('invoice')
+                    .doc(widget.transactionId)
+                    .delete();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+          elevation: 10,
+        );
+      },
     );
   }
 }
