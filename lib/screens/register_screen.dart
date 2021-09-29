@@ -378,7 +378,7 @@ void toast(String message) {
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: Colors.orange,
+      backgroundColor: Colors.lightBlueAccent,
       textColor: Colors.white,
       fontSize: 16.0);
 }

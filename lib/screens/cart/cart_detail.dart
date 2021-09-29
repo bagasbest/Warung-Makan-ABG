@@ -33,6 +33,8 @@ class CartDetail extends StatefulWidget {
 class _CartDetailState extends State<CartDetail> {
   final moneyCurrency = new NumberFormat("#,##0", "en_US");
   var _qty = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
 
   @override
   void initState() {
@@ -288,32 +290,34 @@ class _CartDetailState extends State<CartDetail> {
               SizedBox(
                 height: 16,
               ),
-              Container(
-                margin: EdgeInsets.only(top: 10),
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: TextFormField(
-                  keyboardType: TextInputType.number,
-                  controller: _qty,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  decoration: InputDecoration(
-                    hintText: 'Kurangi kuantitas',
-                    border: InputBorder.none,
+              Form(
+                child: Container(
+                  margin: EdgeInsets.only(top: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  validator: (value) {
-                    if (value!.isEmpty) {
-                      return 'Kuantitas tidak boleh kosong';
-                    } else if (int.parse(_qty.text) >= widget.qty) {
-                      return 'Maksimal ${widget.qty - 1} produk';
-                    } else if (_qty.text == '0') {
-                      return 'Minimal 1 produk';
-                    } else {
-                      return null;
-                    }
-                  },
+                  child: TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: _qty,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      hintText: 'Kurangi kuantitas',
+                      border: InputBorder.none,
+                    ),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Kuantitas tidak boleh kosong';
+                      } else if (int.parse(_qty.text) >= widget.qty) {
+                        return 'Maksimal ${widget.qty - 1} produk';
+                      } else if (_qty.text == '0') {
+                        return 'Minimal 1 produk';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
                 ),
               ),
               SizedBox(
@@ -337,7 +341,7 @@ class _CartDetailState extends State<CartDetail> {
                 color: Colors.white,
               ),
               onPressed: () async {
-                if(int.parse(_qty.text) < widget.qty) {
+                if(int.parse(_qty.text) < widget.qty && _formKey.currentState!.validate()) {
 
                   int price =
                       (widget.qty - int.parse(_qty.text)) * widget.priceBase;

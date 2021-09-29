@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:warung_makan_abg/screens/balance/balance_list.dart';
+import 'package:warung_makan_abg/widget/loading_widget.dart';
 
 class BalanceScreen extends StatefulWidget {
   const BalanceScreen({Key? key}) : super(key: key);
@@ -15,10 +16,14 @@ class _BalanceScreenState extends State<BalanceScreen> {
   String _role = '';
   final moneyCurrency = new NumberFormat("#,##0", "en_US");
   int totalBalance = 0;
+  int monthlyBalance = 0;
+  int dailyBalance = 0;
 
   /// kalender
   DateTime _dueDate = DateTime.now();
   String _dateText = "";
+
+  bool isLoading = true;
 
   Future<Null> _selectDueDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -42,7 +47,6 @@ class _BalanceScreenState extends State<BalanceScreen> {
     super.initState();
     _dateText = 'Semua Pendapatan';
     _initializeRole();
-    _totalBalance();
   }
 
   _initializeRole() {
@@ -53,177 +57,219 @@ class _BalanceScreenState extends State<BalanceScreen> {
         .then((value) {
       setState(() {
         _role = value.data()!["role"];
+        _totalBalance();
       });
     });
   }
 
   _totalBalance() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('balance')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('balance').get();
 
-    if(snapshot.docs.length > 0) {
-      for(int i=0; i<snapshot.size; i++) {
+    if (snapshot.docs.length > 0) {
+      for (int i = 0; i < snapshot.size; i++) {
         totalBalance += snapshot.docs[i]['priceTotal'] as int;
       }
     }
+    _monthlyBalance();
+  }
+
+  _monthlyBalance() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('balance')
+        .where('month', isEqualTo: _dueDate.month.toString())
+        .get();
+
+    if (snapshot.docs.length > 0) {
+      for (int i = 0; i < snapshot.size; i++) {
+        monthlyBalance += snapshot.docs[i]['priceTotal'] as int;
+      }
+    }
+    _dailyBalance();
+  }
+
+  _dailyBalance() async {
+    final DateFormat formatterDate = DateFormat('dd MMMM yyyy');
+    String daily = formatterDate.format(_dueDate);
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('balance')
+        .where('date', isEqualTo: daily)
+        .get();
+
+    if (snapshot.docs.length > 0) {
+      for (int i = 0; i < snapshot.size; i++) {
+        dailyBalance += snapshot.docs[i]['priceTotal'] as int;
+      }
+    }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: (_role == 'owner')
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: 40,
-                    left: 16,
-                  ),
-                  child: Text(
-                    'Riwayat Transaksi',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.lightBlueAccent,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: 16,
-                  ),
-                  child: Divider(
-                    color: Colors.grey,
-                    thickness: 2,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _selectDueDate(context),
-                  child: Card(
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    margin: EdgeInsets.symmetric(horizontal: 10),
-                    child: Container(
-                      height: 50,
-                      width: MediaQuery.of(context).size.width,
-                      margin: EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.white,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(
-                            Icons.arrow_back_ios,
-                            size: 30,
-                            color: Colors.lightBlueAccent,
-                          ),
-                          Text(
-                            _dateText,
-                            style: TextStyle(
-                              color: Colors.lightBlueAccent,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 30,
-                            color: Colors.lightBlueAccent,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 10,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Column(
+    return (isLoading)
+        ? LoadingWidget()
+        : Scaffold(
+            body: (_role == 'owner')
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Pendapatan Total: Rp.${moneyCurrency.format(totalBalance)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: 40,
+                          left: 16,
                         ),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
-                      Text(
-                        'Pendapatan Bulan Ini: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
-                      Text(
-                        'Pendapatan Hari Ini: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
+                        child: Text(
+                          'Pendapatan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.lightBlueAccent,
+                            fontSize: 18,
+                          ),
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: EdgeInsets.only(
+                          top: 16,
+                        ),
                         child: Divider(
-                          thickness: 2,
                           color: Colors.grey,
+                          thickness: 2,
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Daftar Transaksi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
+                      GestureDetector(
+                        onTap: () => _selectDueDate(context),
+                        child: Card(
+                          elevation: 10,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          margin: EdgeInsets.symmetric(horizontal: 10),
+                          child: Container(
+                            height: 50,
+                            width: MediaQuery.of(context).size.width,
+                            margin: EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(
+                                  Icons.arrow_back_ios,
+                                  size: 30,
+                                  color: Colors.lightBlueAccent,
+                                ),
+                                Text(
+                                  _dateText,
+                                  style: TextStyle(
+                                    color: Colors.lightBlueAccent,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 30,
+                                  color: Colors.lightBlueAccent,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 5,),
-                      Container(
-                        height: MediaQuery.of(context).size.height * 0.455,
-                        child: StreamBuilder(
-                          stream: (_dateText == 'Semua Pendapatan')
-                              ? FirebaseFirestore.instance.collection('balance').snapshots()
-                              : FirebaseFirestore.instance
-                              .collection('balance')
-                              .where('date', isEqualTo: _dateText)
-                              .snapshots(),
-                          builder: (BuildContext context,
-                              AsyncSnapshot<QuerySnapshot> snapshot) {
-                            if (snapshot.hasData) {
-                              return (snapshot.data!.size > 0)
-                                  ? ListOfBalance(
-                                document: snapshot.data!.docs,
-                              )
-                                  : _emptyData();
-                            } else {
-                              return _emptyData();
-                            }
-                          },
-                        ),
+                      SizedBox(
+                        height: 10,
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pendapatan Total: Rp.${moneyCurrency.format(totalBalance)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            Text(
+                              'Pendapatan Bulan Ini: Rp.${moneyCurrency.format(monthlyBalance)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            Text(
+                              'Pendapatan Hari Ini: Rp.${moneyCurrency.format(dailyBalance)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Divider(
+                                thickness: 2,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Daftar Transaksi',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 5,
+                            ),
+                            Container(
+                              height:
+                                  MediaQuery.of(context).size.height * 0.455,
+                              child: StreamBuilder(
+                                stream: (_dateText == 'Semua Pendapatan')
+                                    ? FirebaseFirestore.instance
+                                        .collection('balance')
+                                        .snapshots()
+                                    : FirebaseFirestore.instance
+                                        .collection('balance')
+                                        .where('date', isEqualTo: _dateText)
+                                        .snapshots(),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                                  if (snapshot.hasData) {
+                                    return (snapshot.data!.size > 0)
+                                        ? ListOfBalance(
+                                            document: snapshot.data!.docs,
+                                          )
+                                        : _emptyData();
+                                  } else {
+                                    return _emptyData();
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
                     ],
-                  ),
-                )
-              ],
-            )
-          : _ownerOnly(),
-    );
+                  )
+                : _ownerOnly(),
+          );
   }
 
   Widget _ownerOnly() {
@@ -238,7 +284,6 @@ class _BalanceScreenState extends State<BalanceScreen> {
       ),
     );
   }
-
 
   Widget _emptyData() {
     return Container(

@@ -311,7 +311,7 @@ class _ProductAddState extends State<ProductAdd> {
                   padding: const EdgeInsets.all(8.0),
                   child: RaisedButton(
                     onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
+                      if (_formKey.currentState!.validate() && _image != null) {
                         setState(() {
                           visible = true;
                         });
@@ -335,6 +335,8 @@ class _ProductAddState extends State<ProductAdd> {
                           isImageAdd = false;
                           showAlertDialog(context);
                         });
+                      } else if(_image == null) {
+                        toast('Pastikan anda mengunggah gambar produk');
                       }
                     },
                     child: Text("Unggah Produk",

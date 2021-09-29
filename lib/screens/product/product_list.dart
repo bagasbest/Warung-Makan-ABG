@@ -43,9 +43,7 @@ class ListOfProduct extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
                   child: Image.network(
-                    (image != '')
-                        ? image
-                        : 'https://images.unsplash.com/photo-1579621970795-87facc2f976d?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80',
+                    image,
                     height: 100,
                     width: 150,
                     fit: BoxFit.cover,

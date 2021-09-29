@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:warung_makan_abg/databases/database_service.dart';
 import 'package:warung_makan_abg/screens/product/product_edit.dart';
 
@@ -32,6 +31,10 @@ class _ProductDetailState extends State<ProductDetail> {
   String role = '';
 
   var _qty = TextEditingController();
+  var _qtyAdd = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+
 
   _initializeRole() async {
     String uid = FirebaseAuth.instance.currentUser!.uid;
@@ -80,7 +83,7 @@ class _ProductDetailState extends State<ProductDetail> {
               ? PopupMenuButton(
                   onSelected: _handleClick,
                   itemBuilder: (BuildContext context) {
-                    return {'Edit Produk', 'Hapus Produk'}.map((String choice) {
+                    return {'Edit Produk', 'Hapus Produk', 'Tambah Kuantitas Produk'}.map((String choice) {
                       return PopupMenuItem<String>(
                         value: choice,
                         child: Text(choice),
@@ -212,7 +215,135 @@ class _ProductDetailState extends State<ProductDetail> {
       case 'Hapus Produk':
         _deleteProduct(context, widget.productId);
         break;
+      case 'Tambah Kuantitas Produk' :
+        _showAddQtyProduct();
     }
+  }
+
+  _showAddQtyProduct() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.white),
+            borderRadius: BorderRadius.all(
+              Radius.circular(16),
+            ),
+          ),
+          backgroundColor: Colors.lightBlueAccent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Text(
+                  'Tambah Kuantitas Produk',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 5,
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  left: MediaQuery.of(context).size.width * 0.1,
+                  right: MediaQuery.of(context).size.width * 0.1,
+                ),
+                child: Divider(
+                  color: Colors.white,
+                  height: 3,
+                  thickness: 3,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Text(
+                'Tersedia ${widget.quantity} pcs, anda ingin menambahkan stok berapa banyak ?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Form(
+                key: _formKey,
+                child: Container(
+                  margin: EdgeInsets.only(
+                    top: 10,
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: _qtyAdd,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      hintText: 'Tambahkan Kuantitas',
+                      border: InputBorder.none,
+                    ),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Kuantitas tidak boleh kosong';
+                      } else if (value == '0') {
+                        return 'Kuantitas tidak boleh 0';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.clear,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.check,
+                color: Colors.white,
+              ),
+              onPressed: () async {
+
+                if(_formKey.currentState!.validate()) {
+                  int newQty = widget.quantity + int.parse(_qtyAdd.text);
+
+                  await DatabaseService.updateQuantityProduct(
+                    widget.productId,
+                    newQty,
+                  );
+
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+          elevation: 10,
+        );
+      },
+    );
   }
 
   _showConfirmAddProduct() {
@@ -232,7 +363,7 @@ class _ProductDetailState extends State<ProductDetail> {
             children: [
               Center(
                 child: Text(
-                  'Kuantitas Produk',
+                  'Konfirmasi Order',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -277,21 +408,26 @@ class _ProductDetailState extends State<ProductDetail> {
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: TextFormField(
-                  keyboardType: TextInputType.number,
-                  controller: _qty,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  decoration: InputDecoration(
-                    hintText: 'Qty',
-                    border: InputBorder.none,
+                child: Form(
+                  key: _formKey,
+                  child: TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: _qty,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      hintText: 'Input Kuantitas',
+                      border: InputBorder.none,
+                    ),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Kuantitas tidak boleh kosong';
+                      } else if (value == '0') {
+                        return 'Kuantitas tidak boleh 0';
+                      } else {
+                        return null;
+                      }
+                    },
                   ),
-                  validator: (value) {
-                    if (value!.isEmpty) {
-                      return 'Kuantitas tidak boleh kosong';
-                    } else {
-                      return null;
-                    }
-                  },
                 ),
               ),
               SizedBox(
@@ -315,24 +451,24 @@ class _ProductDetailState extends State<ProductDetail> {
                 color: Colors.white,
               ),
               onPressed: () async {
-                final DateTime now = DateTime.now();
-                final DateFormat formatter =
-                    DateFormat('dd MMMM yyyy, hh:mm:ss');
-                final String formatted = formatter.format(now);
 
-                int price = int.parse(_qty.text) * widget.price;
-                var timeInMillis = DateTime.now().millisecondsSinceEpoch;
+                if(int.parse(_qty.text) <= widget.quantity && _formKey.currentState!.validate()) {
+                  int price = int.parse(_qty.text) * widget.price;
+                  var timeInMillis = DateTime.now().millisecondsSinceEpoch;
 
-                await DatabaseService.addToCart(
-                  widget.productId,
-                  widget.name,
-                  int.parse(_qty.text),
-                  price,
-                  widget.image,
-                  timeInMillis.toString(),
-                  widget.description,
-                  widget.price,
-                );
+                  await DatabaseService.addToCart(
+                    widget.productId,
+                    widget.name,
+                    int.parse(_qty.text),
+                    price,
+                    widget.image,
+                    timeInMillis.toString(),
+                    widget.description,
+                    widget.price,
+                  );
+                } else {
+                  toast('Kuantitas produk tidak mencukupi untuk order');
+                }
 
                 Navigator.of(context).pop();
               },

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -9,8 +8,10 @@ import 'package:warung_makan_abg/screens/register_screen.dart';
 
 class DatabaseService {
   static Future<XFile?> getImageGallery() async {
-    var image = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 80);
+    var image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+    );
     if ((image != null)) {
       return image;
     } else {
@@ -125,6 +126,7 @@ class DatabaseService {
     String time,
     int priceTotal,
     List<CartModel> cartList,
+    String month,
   ) async {
     try {
       /// create invoice
@@ -171,12 +173,24 @@ class DatabaseService {
         'transactionId': transactionId,
         'date': date,
         'priceTotal': priceTotal,
+        'month': month,
       });
 
       return true;
     } catch (error) {
       print(error);
       return false;
+    }
+  }
+
+  static updateQuantityProduct(String productId, int newQty) {
+    try {
+      FirebaseFirestore.instance.collection('product').doc(productId).update({
+        'quantity': newQty,
+      });
+      toast('Sukses memperbarui kuantitas produk ini');
+    } catch (error) {
+      toast('Gagal memperbarui kuantitas produk ini');
     }
   }
 }

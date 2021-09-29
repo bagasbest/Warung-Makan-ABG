@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:warung_makan_abg/screens/login_screen.dart';
 import 'package:warung_makan_abg/screens/product/product_add.dart';
 import 'package:warung_makan_abg/screens/product/product_list.dart';
 
@@ -39,8 +40,8 @@ class _ProductScreenState extends State<ProductScreen> {
       floatingActionButton: (_role == 'owner')
           ? FloatingActionButton(
               onPressed: () {
-                Route route = MaterialPageRoute(
-                    builder: (context) => ProductAdd());
+                Route route =
+                    MaterialPageRoute(builder: (context) => ProductAdd());
                 Navigator.push(context, route);
               },
               backgroundColor: Colors.lightBlueAccent,
@@ -57,13 +58,27 @@ class _ProductScreenState extends State<ProductScreen> {
               top: 40,
               left: 16,
             ),
-            child: Text(
-              'Daftar Produk Tersedia',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.lightBlueAccent,
-                fontSize: 18,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Daftar Produk Tersedia',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.lightBlueAccent,
+                    fontSize: 18,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    _showDialogLogout();
+                  },
+                  child: Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                  ),
+                )
+              ],
             ),
           ),
           Padding(
@@ -121,4 +136,88 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
+  _showDialogLogout() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.white),
+            borderRadius: BorderRadius.all(
+              Radius.circular(16),
+            ),
+          ),
+          backgroundColor: Colors.lightBlueAccent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Text(
+                  'Konfirmasi Logout',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 5,
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  left: MediaQuery.of(context).size.width * 0.1,
+                  right: MediaQuery.of(context).size.width * 0.1,
+                ),
+                child: Divider(
+                  color: Colors.white,
+                  height: 3,
+                  thickness: 3,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Text(
+                'Apakah anda yakin ingin Logout ?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.clear,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.check,
+                color: Colors.white,
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => LoginPage()),
+                    (Route<dynamic> route) => false);
+              },
+            ),
+          ],
+          elevation: 10,
+        );
+      },
+    );
+  }
 }

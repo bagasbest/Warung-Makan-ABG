@@ -104,8 +104,10 @@ class _CartScreenState extends State<CartScreen> {
                         final String date = formatterDate.format(now);
 
                         final DateFormat formatterTime =
-                        DateFormat('hh:mm:ss');
+                        DateFormat('hh:mm:ss aa');
                         final String time = formatterTime.format(now);
+
+                        final String getMonth = now.month.toString();
 
                         String transactionId =
                             DateTime.now().millisecondsSinceEpoch.toString();
@@ -157,6 +159,7 @@ class _CartScreenState extends State<CartScreen> {
                           time,
                           priceTotal,
                           cartList,
+                          getMonth,
                         );
 
                         /// tampilkan hasil
