@@ -53,6 +53,8 @@ class _ProductDetailState extends State<ProductDetail> {
   void initState() {
     super.initState();
     _initializeRole();
+    _qty.text = "1";
+    _qtyAdd.text = "1";
   }
 
   @override

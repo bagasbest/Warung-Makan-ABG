@@ -69,13 +69,18 @@ class _ProductScreenState extends State<ProductScreen> {
                     fontSize: 18,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    _showDialogLogout();
-                  },
-                  child: Icon(
-                    Icons.logout,
-                    color: Colors.red,
+                Padding(
+                  padding: const EdgeInsets.only(
+                    right: 16,
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      _showDialogLogout();
+                    },
+                    child: Icon(
+                      Icons.logout,
+                      color: Colors.red,
+                    ),
                   ),
                 )
               ],

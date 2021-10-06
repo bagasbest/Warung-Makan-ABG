@@ -38,6 +38,8 @@ dependencies:
   image_picker: ^0.8.4
   intl: ^0.17.0
   shimmer: ^2.0.0
+  esc_pos_bluetooth:
+  flutter_bluetooth_basic:
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +47,14 @@ dev_dependencies:
 
   flutter_launcher_name:
   flutter_launcher_icons:
+
+flutter_icons:
+  image_path: "assets/home.png"
+  android: true
+  ios: true
+
+flutter_launcher_name:
+  name: "Warung Makan ABG"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

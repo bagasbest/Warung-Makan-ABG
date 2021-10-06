@@ -127,6 +127,7 @@ class DatabaseService {
     int priceTotal,
     List<CartModel> cartList,
     String month,
+    int now,
   ) async {
     try {
       /// create invoice
@@ -174,6 +175,7 @@ class DatabaseService {
         'date': date,
         'priceTotal': priceTotal,
         'month': month,
+        'timeInMillis': now,
       });
 
       return true;

@@ -2,9 +2,14 @@
     package="com.warungmakanabg.warung_makan_abg">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    
-   <application
-        android:label="warung_makan_abg"
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+
+    <application
+        android:label="Warung Makan ABG"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

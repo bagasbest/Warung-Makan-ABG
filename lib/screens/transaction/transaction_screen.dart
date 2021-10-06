@@ -42,8 +42,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
           Padding(
             padding: EdgeInsets.only(
@@ -61,38 +60,33 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ),
           Padding(
             padding: EdgeInsets.only(
-              top: 16,
+              top: 70,
             ),
             child: Divider(
               color: Colors.grey,
               thickness: 2,
             ),
           ),
-          GestureDetector(
-            onTap: () => _selectDueDate(context),
-            child: Card(
-              elevation: 10,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
-              margin: EdgeInsets.symmetric(horizontal: 10),
-              child: Container(
-                height: 50,
-                width: MediaQuery.of(context).size.width,
-                margin: EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.only(top: 90,),
+            child: GestureDetector(
+              onTap: () => _selectDueDate(context),
+              child: Card(
+                elevation: 10,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Icons.arrow_back_ios,
-                      size: 30,
-                      color: Colors.lightBlueAccent,
-                    ),
-                    Text(
+                margin: EdgeInsets.symmetric(horizontal: 10),
+                child: Container(
+                  height: 50,
+                  width: MediaQuery.of(context).size.width,
+                  margin: EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                  ),
+                  child: Center(
+                    child: Text(
                       _dateText,
                       style: TextStyle(
                         color: Colors.lightBlueAccent,
@@ -100,22 +94,13 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         fontSize: 18,
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 30,
-                      color: Colors.lightBlueAccent,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-          SizedBox(
-            height: 10,
-          ),
           Container(
-            margin: EdgeInsets.only(left: 16, right: 16),
-            height: MediaQuery.of(context).size.height * 0.67,
+            margin: EdgeInsets.only(left: 16, right: 16, top: 140,),
             child: StreamBuilder(
               stream: (_dateText == 'Semua Riwayat Transaksi')
                   ? FirebaseFirestore.instance.collection('invoice').snapshots()

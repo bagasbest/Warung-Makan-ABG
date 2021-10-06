@@ -1,9 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
+import 'package:warung_makan_abg/screens/register_screen.dart';
 import 'package:warung_makan_abg/screens/transaction/transaction_detail_list.dart';
 import 'package:warung_makan_abg/widget/loading_widget.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class TransactionDetail extends StatefulWidget {
   final String transactionId;
@@ -28,12 +33,31 @@ class _TransactionDetailState extends State<TransactionDetail> {
   String _role = '';
 
   bool isLoading = true;
+  bool isRipple = false;
+
+  PrinterBluetoothManager _printerManager = PrinterBluetoothManager();
+  List<PrinterBluetooth> _devices = [];
+  String deviceMsg = '';
+  BluetoothManager bluetoothManager = BluetoothManager.instance;
 
   @override
   void initState() {
-    // TODO: implement initState
-    super.initState();
+
+    bluetoothManager.state.listen((val) {
+      if(!mounted) return;
+      if(val == 12) {
+        print('on');
+        initPrinter();
+      } else if (val == 10) {
+        print('off');
+        setState(() {
+          deviceMsg = 'Bluetooth Mati';
+        });
+      }
+    });
+
     _initializeRole();
+    super.initState();
   }
 
   _initializeRole() async {
@@ -82,18 +106,24 @@ class _TransactionDetailState extends State<TransactionDetail> {
               ),
             ),
             body: Container(
+              color: Colors.white,
               width: MediaQuery.of(context).size.width,
               child: Stack(
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(
-                      right: 16,
-                      top: 16,
+                      right: 10,
+                      top: 10,
                     ),
                     child: GestureDetector(
                       onTap: () {
-                        /// cetak transaksi ke printer
+                        /// print transaksi
 
+                        if (_devices.isEmpty) {
+                          toast(deviceMsg);
+                        } else {
+                          _showPrintDialog();
+                        }
                       },
                       child: Align(
                         alignment: Alignment.topRight,
@@ -111,6 +141,24 @@ class _TransactionDetailState extends State<TransactionDetail> {
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 60,
+                      right: 10,
+                    ),
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        child: (isRipple)
+                            ? SpinKitRipple(
+                                color: Colors.lightBlueAccent,
+                              )
+                            : Container(),
                       ),
                     ),
                   ),
@@ -204,34 +252,35 @@ class _TransactionDetailState extends State<TransactionDetail> {
                             ),
                           ],
                         ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          height: MediaQuery.of(context).size.height * 0.576,
-                          child: StreamBuilder(
-                            stream: FirebaseFirestore.instance
-                                .collection('history_transaction')
-                                .where(
-                                  'transactionId',
-                                  isEqualTo: widget.transactionId,
-                                )
-                                .snapshots(),
-                            builder: (BuildContext context,
-                                AsyncSnapshot<QuerySnapshot> snapshot) {
-                              return (snapshot.hasData)
-                                  ? (snapshot.data!.size > 0)
-                                      ? ListOfHistoryTransaction(
-                                          document: snapshot.data!.docs,
-                                        )
-                                      : Container()
-                                  : Container();
-                            },
-                          ),
-                        ),
                       ],
                     ),
-                  )
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(
+                      top: 180,
+                      left: 16,
+                      right: 16,
+                    ),
+                    child: StreamBuilder(
+                      stream: FirebaseFirestore.instance
+                          .collection('history_transaction')
+                          .where(
+                            'transactionId',
+                            isEqualTo: widget.transactionId,
+                          )
+                          .snapshots(),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot) {
+                        return (snapshot.hasData)
+                            ? (snapshot.data!.size > 0)
+                                ? ListOfHistoryTransaction(
+                                    document: snapshot.data!.docs,
+                                  )
+                                : Container()
+                            : Container();
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -335,4 +384,121 @@ class _TransactionDetailState extends State<TransactionDetail> {
       },
     );
   }
+
+  void initPrinter() {
+
+    _printerManager.startScan(
+      Duration(
+        seconds: 2,
+      ),
+    );
+
+    /// deteksi printer bluetooth
+    _printerManager.scanResults.listen((val) {
+      if (mounted) return;
+      setState(() {
+        _devices = val;
+        if (_devices.isEmpty) {
+          setState(() {
+            deviceMsg = "Tidak Ada Printer Terhubung";
+          });
+        }
+      });
+    });
+  }
+
+  void _showPrintDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.white),
+            borderRadius: BorderRadius.all(
+              Radius.circular(16),
+            ),
+          ),
+          backgroundColor: Colors.lightBlueAccent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Text(
+                  'Sukses Membuat Transaksi',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 5,
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  left: MediaQuery.of(context).size.width * 0.1,
+                  right: MediaQuery.of(context).size.width * 0.1,
+                ),
+                child: Divider(
+                  color: Colors.white,
+                  height: 3,
+                  thickness: 3,
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              ListView.builder(
+                itemCount: _devices.length,
+                itemBuilder: (BuildContext context, int i) {
+                  return ListTile(
+                    leading: Icon(
+                      Icons.print,
+                      color: Colors.white,
+                    ),
+                    title: Text(_devices[i].name),
+                    subtitle: Text(_devices[i].address),
+                    onTap: () {
+                      _startPrint(_devices[i]);
+                    },
+                  );
+                },
+              )
+            ],
+          ),
+          elevation: 10,
+        );
+      },
+    );
+  }
+
+
+  Future<void> _startPrint(PrinterBluetooth printer) async {
+    _printerManager.selectPrinter(printer);
+  final result = await _printerManager.printTicket(await _ticket(PaperSize.mm58));
+
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      content: Text(result.msg),
+    )
+  );
+
+  }
+
+  Future<Ticket> _ticket(PaperSize paper) async {
+    final ticket = Ticket(paper);
+    ticket.text('test');
+    ticket.cut();
+    return ticket;
+  }
+
+
+  @override
+  void dispose() {
+    _printerManager.stopScan();
+    super.dispose();
+  }
+
 }
