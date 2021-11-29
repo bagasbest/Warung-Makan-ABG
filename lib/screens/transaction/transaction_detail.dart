@@ -31,6 +31,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
   final moneyCurrency = new NumberFormat("#,##0", "en_US");
 
   String _role = '';
+  var querySnapshot;
 
   bool isLoading = true;
   bool isRipple = false;
@@ -42,10 +43,9 @@ class _TransactionDetailState extends State<TransactionDetail> {
 
   @override
   void initState() {
-
     bluetoothManager.state.listen((val) {
-      if(!mounted) return;
-      if(val == 12) {
+      if (!mounted) return;
+      if (val == 12) {
         print('on');
         initPrinter();
       } else if (val == 10) {
@@ -55,6 +55,8 @@ class _TransactionDetailState extends State<TransactionDetail> {
         });
       }
     });
+
+    _initializeTransaction();
 
     _initializeRole();
     super.initState();
@@ -72,6 +74,16 @@ class _TransactionDetailState extends State<TransactionDetail> {
         isLoading = false;
       });
     });
+  }
+
+  _initializeTransaction() async {
+    querySnapshot = await FirebaseFirestore.instance
+        .collection('history_transaction')
+        .where(
+          'transactionId',
+          isEqualTo: widget.transactionId,
+        )
+        .get();
   }
 
   @override
@@ -120,6 +132,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
                         /// print transaksi
 
                         if (_devices.isEmpty) {
+                          deviceMsg = 'Tidak ada printer terhubung!';
                           toast(deviceMsg);
                         } else {
                           _showPrintDialog();
@@ -386,7 +399,6 @@ class _TransactionDetailState extends State<TransactionDetail> {
   }
 
   void initPrinter() {
-
     _printerManager.startScan(
       Duration(
         seconds: 2,
@@ -395,7 +407,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
 
     /// deteksi printer bluetooth
     _printerManager.scanResults.listen((val) {
-      if (mounted) return;
+      if (!mounted) return;
       setState(() {
         _devices = val;
         if (_devices.isEmpty) {
@@ -424,7 +436,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
             children: [
               Center(
                 child: Text(
-                  'Sukses Membuat Transaksi',
+                  'Pilih Printer',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -449,21 +461,28 @@ class _TransactionDetailState extends State<TransactionDetail> {
               SizedBox(
                 height: 16,
               ),
-              ListView.builder(
-                itemCount: _devices.length,
-                itemBuilder: (BuildContext context, int i) {
-                  return ListTile(
-                    leading: Icon(
-                      Icons.print,
-                      color: Colors.white,
-                    ),
-                    title: Text(_devices[i].name),
-                    subtitle: Text(_devices[i].address),
-                    onTap: () {
-                      _startPrint(_devices[i]);
-                    },
-                  );
-                },
+              Container(
+                height: 100,
+                child: ListView.builder(
+                  itemCount: _devices.length,
+                  itemBuilder: (BuildContext context, int i) {
+                    return ListTile(
+                      leading: Icon(
+                        Icons.print,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        _devices[i].name,
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(_devices[i].address,
+                          style: TextStyle(color: Colors.white)),
+                      onTap: () {
+                        _startPrint(_devices[i]);
+                      },
+                    );
+                  },
+                ),
               )
             ],
           ),
@@ -473,32 +492,60 @@ class _TransactionDetailState extends State<TransactionDetail> {
     );
   }
 
-
   Future<void> _startPrint(PrinterBluetooth printer) async {
     _printerManager.selectPrinter(printer);
-  final result = await _printerManager.printTicket(await _ticket(PaperSize.mm58));
+    final result =
+        await _printerManager.printTicket(await _ticket(PaperSize.mm58));
 
-  showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      content: Text(result.msg),
-    )
-  );
-
+    showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+              content: Text(result.msg),
+            ));
   }
 
   Future<Ticket> _ticket(PaperSize paper) async {
     final ticket = Ticket(paper);
-    ticket.text('test');
+    ticket.text('WARUNG MAKAN ABG',
+        styles: PosStyles(
+          align: PosAlign.center,
+          height: PosTextSize.size2,
+          width: PosTextSize.size2,
+        ));
+    ticket.feed(2);
+    ticket.text('ID Transaksi: INV-' + widget.transactionId);
+    ticket.text('Tanggal: ' + widget.date);
+    ticket.text('Waktu: ' + widget.time);
+    ticket.text('Total Harga: Rp.${moneyCurrency.format(widget.priceTotal)}');
+    ticket.feed(2);
+
+    for (int i = 0; i < querySnapshot.docs.length; i++) {
+      ticket.text(querySnapshot.docs[i]['name'].toString());
+      ticket.row([
+        PosColumn(
+            text:
+                'Rp. ${moneyCurrency.format(querySnapshot.docs[i]['priceBase'])} x ${querySnapshot.docs[i]['qty'].toString()}',
+            width: 8),
+        PosColumn(
+          text: 'Rp ${moneyCurrency.format(querySnapshot.docs[i]['price'])}',
+          width: 4,
+        ),
+      ]);
+    }
+
+    ticket.feed(2);
+    ticket.text('Terima Kasih',
+        styles: PosStyles(
+          align: PosAlign.center,
+          bold: true,
+        ));
     ticket.cut();
     return ticket;
   }
-
 
   @override
   void dispose() {
     _printerManager.stopScan();
     super.dispose();
   }
-
 }
