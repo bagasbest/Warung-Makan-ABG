@@ -1,14 +1,13 @@
+import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:warung_makan_abg/screens/register_screen.dart';
 import 'package:warung_makan_abg/screens/transaction/transaction_detail_list.dart';
 import 'package:warung_makan_abg/widget/loading_widget.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
 
 class TransactionDetail extends StatefulWidget {
   final String transactionId;
@@ -36,30 +35,58 @@ class _TransactionDetailState extends State<TransactionDetail> {
   bool isLoading = true;
   bool isRipple = false;
 
-  PrinterBluetoothManager _printerManager = PrinterBluetoothManager();
-  List<PrinterBluetooth> _devices = [];
-  String deviceMsg = '';
-  BluetoothManager bluetoothManager = BluetoothManager.instance;
+  ///Dependency Baru
+  BlueThermalPrinter bluetooth = BlueThermalPrinter.instance;
+  List<BluetoothDevice> _devices = [];
+  int? bluetoothState;
 
   @override
   void initState() {
-    bluetoothManager.state.listen((val) {
-      if (!mounted) return;
-      if (val == 12) {
-        print('on');
-        initPrinter();
-      } else if (val == 10) {
-        print('off');
-        setState(() {
-          deviceMsg = 'Bluetooth Mati';
-        });
-      }
-    });
+    /// Fungsi untuk cek bluetooth ponsel menyala atau mati
+    initPlatformState();
 
     _initializeTransaction();
 
     _initializeRole();
     super.initState();
+  }
+
+  /// Fungsi untuk cek bluetooth ponsel menyala atau mati
+  Future<void> initPlatformState() async {
+    List<BluetoothDevice> devices = [];
+
+    try {
+      devices = await bluetooth.getBondedDevices();
+    } on PlatformException {}
+
+    bluetooth.onStateChanged().listen((state) {
+      switch (state) {
+
+        /// Bluetooth menyala pada ponsel
+        case BlueThermalPrinter.CONNECTED:
+          setState(() {
+            print('bluetooth ON');
+          });
+          break;
+
+        /// Bluetooth mati
+        case BlueThermalPrinter.DISCONNECTED:
+          setState(() {
+            print('bluetooth OFF');
+          });
+          break;
+        default:
+          setState(() {
+            bluetoothState = state;
+          });
+          break;
+      }
+    });
+
+    if (!mounted) return;
+    setState(() {
+      _devices = devices;
+    });
   }
 
   _initializeRole() async {
@@ -118,7 +145,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
               ),
             ),
             body: Container(
-              color: Colors.white,
+              color: Color.fromARGB(255, 75, 69, 69),
               width: MediaQuery.of(context).size.width,
               child: Stack(
                 children: [
@@ -129,11 +156,15 @@ class _TransactionDetailState extends State<TransactionDetail> {
                     ),
                     child: GestureDetector(
                       onTap: () {
-                        /// print transaksi
+                        /// Klik tombol print
+                        /// pertama kali program mengecek apakah sudah ada printer bluetooth yang terhubung do aplikasi Warung Makan ABG ini atau belum ada
+                        /// Jika tidak ada printer yang terhubung, maka akan muncul semacam alert / toast yang mengatakan "Tidak ada printer terhubung"
+                        /// Jika ada printer yang terhubung, maka tampilkan daftar printer tersebut, dan admin bisa memilih mau mencetak struk pakai printer yang tersedia
 
-                        if (_devices.isEmpty) {
-                          deviceMsg = 'Tidak ada printer terhubung!';
-                          toast(deviceMsg);
+                        if (bluetoothState == 10) {
+                          toast("Harap nyalakan bluetooth pada ponsel anda!");
+                        } else if (_devices.isEmpty) {
+                          toast("Tidak ada printer bluetooth terhubung!");
                         } else {
                           _showPrintDialog();
                         }
@@ -398,27 +429,6 @@ class _TransactionDetailState extends State<TransactionDetail> {
     );
   }
 
-  void initPrinter() {
-    _printerManager.startScan(
-      Duration(
-        seconds: 2,
-      ),
-    );
-
-    /// deteksi printer bluetooth
-    _printerManager.scanResults.listen((val) {
-      if (!mounted) return;
-      setState(() {
-        _devices = val;
-        if (_devices.isEmpty) {
-          setState(() {
-            deviceMsg = "Tidak Ada Printer Terhubung";
-          });
-        }
-      });
-    });
-  }
-
   void _showPrintDialog() {
     showDialog(
       context: context,
@@ -472,12 +482,19 @@ class _TransactionDetailState extends State<TransactionDetail> {
                         color: Colors.white,
                       ),
                       title: Text(
-                        _devices[i].name,
+                        _devices[i].name!,
                         style: TextStyle(color: Colors.white),
                       ),
-                      subtitle: Text(_devices[i].address,
-                          style: TextStyle(color: Colors.white)),
+                      subtitle: Text(
+                        _devices[i].address!,
+                        style: TextStyle(color: Colors.white),
+                      ),
                       onTap: () {
+                        /// Admin menekan printer bluetooth yang tersedia
+                        /// kemudian struk transaksi akan keluar
+
+                        /// koneksikan printer bluetooth yang dipilih
+                        bluetooth.connect(_devices[i]);
                         _startPrint(_devices[i]);
                       },
                     );
@@ -492,60 +509,67 @@ class _TransactionDetailState extends State<TransactionDetail> {
     );
   }
 
-  Future<void> _startPrint(PrinterBluetooth printer) async {
-    _printerManager.selectPrinter(printer);
-    final result =
-        await _printerManager.printTicket(await _ticket(PaperSize.mm58));
+  /// Fungsi untuk mencetak struk transaksi
+  Future<void> _startPrint(BluetoothDevice device) async {
+    /// pastikan ada printer bluetooth yang terpilih oleh admin
+    if (device.address != null) {
+      /// koneksikan printer bluetooth yang dipilih
+      bluetooth.isConnected.then((isConnected) {
+        if (isConnected == true) {
+          //SIZE
+          // 0- normal size text
+          // 1- only bold text
+          // 2- bold with medium text
+          // 3- bold with large text
+          //ALIGN
+          // 0- ESC_ALIGN_LEFT
+          // 1- ESC_ALIGN_CENTER
+          // 2- ESC_ALIGN_RIGHT
 
-    showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-              content: Text(result.msg),
-            ));
-  }
+          /// Judul Struk
+          bluetooth.printNewLine();
+          bluetooth.printCustom("Warung Makan ABG", 3, 1);
+          bluetooth.printNewLine();
+          bluetooth.printNewLine();
 
-  Future<Ticket> _ticket(PaperSize paper) async {
-    final ticket = Ticket(paper);
-    ticket.text('WARUNG MAKAN ABG',
-        styles: PosStyles(
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ));
-    ticket.feed(2);
-    ticket.text('ID Transaksi: INV-' + widget.transactionId);
-    ticket.text('Tanggal: ' + widget.date);
-    ticket.text('Waktu: ' + widget.time);
-    ticket.text('Total Harga: Rp.${moneyCurrency.format(widget.priceTotal)}');
-    ticket.feed(2);
+          /// Header Struk
+          bluetooth.printCustom(
+              "ID Transaksi: INV-${widget.transactionId}", 0, 0);
+          bluetooth.printCustom("Tanggal: ${widget.date}", 0, 0);
+          bluetooth.printCustom("Waktu: ${widget.time}", 0, 0);
+          bluetooth.printCustom(
+              "Total Harga: Rp.{moneyCurrency.format(widget.priceTotal)}",
+              0,
+              0);
+          bluetooth.printNewLine();
+          bluetooth.printNewLine();
 
-    for (int i = 0; i < querySnapshot.docs.length; i++) {
-      ticket.text(querySnapshot.docs[i]['name'].toString());
-      ticket.row([
-        PosColumn(
-            text:
-                'Rp. ${moneyCurrency.format(querySnapshot.docs[i]['priceBase'])} x ${querySnapshot.docs[i]['qty'].toString()}',
-            width: 8),
-        PosColumn(
-          text: 'Rp ${moneyCurrency.format(querySnapshot.docs[i]['price'])}',
-          width: 4,
-        ),
-      ]);
+          /// Body Struk
+          for (int i = 0; i < querySnapshot.docs.length; i++) {
+            bluetooth.printCustom(querySnapshot[i]['name'], 0, 0);
+            bluetooth.printCustom(
+                'Rp.${querySnapshot[i]['priceBase']} x ${querySnapshot[i]['qty']} = Rp.${querySnapshot[i]['priceBase'] * querySnapshot[i]['qty']}',
+                0,
+                0);
+            bluetooth.printNewLine();
+          }
+
+          /// Footer Struk
+          bluetooth.printCustom("Terima Kasih", 3, 1);
+          bluetooth.printNewLine();
+          bluetooth.printNewLine();
+          bluetooth.paperCut();
+        } else {
+          toast(
+              'Terdapat kesalahan ketika ingin mencetak struk, pastikan bluetooth menyala dan sudah memilih printer dengan baik');
+        }
+      });
     }
-
-    ticket.feed(2);
-    ticket.text('Terima Kasih',
-        styles: PosStyles(
-          align: PosAlign.center,
-          bold: true,
-        ));
-    ticket.cut();
-    return ticket;
   }
 
   @override
   void dispose() {
-    _printerManager.stopScan();
+    bluetooth.disconnect();
     super.dispose();
   }
 }
